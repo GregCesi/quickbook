@@ -1,46 +1,33 @@
-import { useNuxtApp } from "#app";
-import type { User } from "@supabase/supabase-js";
-import { ref, watchEffect } from "vue";
+import { useSupabaseClient, useSupabaseUser } from "#imports";
+import { navigateTo } from "#app";
 
-export const useAuth = () => {
-  const nuxtApp = useNuxtApp(); // ✅ On récupère NuxtApp correctement
-  const $supabase = nuxtApp.$supabase; // ✅ Assurer que $supabase est bien défini
-  const user = ref<User | null>(null);
+// 🔹 Fonction de connexion avec email et mot de passe
+export async function signIn(email: string, password: string) {
+  const supabase = useSupabaseClient();
 
-  // 🔹 Vérifier la session utilisateur au chargement
-  const fetchUser = async () => {
-    if (!$supabase) return; // ✅ Vérifier que Supabase est bien chargé
-    const { data } = await $supabase.auth.getUser();
-    user.value = data.user ?? null;
-  };
-
-  // 🔹 Met à jour `user` automatiquement en cas de connexion/déconnexion
-  watchEffect(() => {
-    if (!$supabase) return; // ✅ Vérifier que Supabase est bien défini
-    $supabase.auth.onAuthStateChange((event, session) => {
-      user.value = session?.user ?? null;
-    });
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
 
-  // 🔹 Connexion
-  const signIn = async (email: string, password: string) => {
-    if (!$supabase) throw new Error("Supabase non chargé");
-    const { data, error } = await $supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    user.value = data.user ?? null;
-  };
+  if (error) {
+    console.error("❌ Erreur de connexion :", error.message);
+    return error.message;
+  }
 
-  // 🔹 Déconnexion
-  const signOut = async () => {
-    if (!$supabase) throw new Error("Supabase non chargé");
-    await $supabase.auth.signOut();
-    user.value = null;
-  };
+  console.log("✅ Connexion réussie !");
+  await navigateTo("/dashboard"); // Redirection vers le tableau de bord
+}
 
-  return {
-    user,
-    signIn,
-    signOut,
-    fetchUser,
-  };
-};
+// 🔹 Fonction de déconnexion
+export async function signOut() {
+  const supabase = useSupabaseClient();
+  await supabase.auth.signOut();
+  console.log("👋 Déconnecté !");
+  await navigateTo("/");
+}
+
+// 🔹 Fonction pour récupérer l'utilisateur connecté
+export function useAuthUser() {
+  return useSupabaseUser(); // Récupère automatiquement l'utilisateur connecté
+}

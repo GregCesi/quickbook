@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useAuth } from "@/composables/useAuth";
+import { useAuthUser, signOut } from "@/composables/useAuth";
 
-const { user, signOut } = useAuth(); // 🔹 Récupération de l'utilisateur connecté
+const user = useAuthUser(); // 🔹 Récupération de l'utilisateur connecté
 </script>
 
 <template>
@@ -16,7 +16,9 @@ const { user, signOut } = useAuth(); // 🔹 Récupération de l'utilisateur con
 
         <!-- 🔹 Affichage du dashboard SEULEMENT si l'utilisateur est connecté -->
         <li v-if="user"><NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink></li>
-        <li v-if="user"><button @click="signOut" class="hover:underline">Déconnexion</button></li>
+        <li v-if="user">
+          <button @click="signOut" class="hover:underline">Déconnexion</button>
+        </li>
       </ul>
     </nav>
   </header>
