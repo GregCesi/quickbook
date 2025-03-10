@@ -13,6 +13,7 @@ const user = useAuthUser(); // 🔹 Récupération de l'utilisateur connecté
         <!-- 🔹 Liens visibles pour tout le monde -->
         <li><NuxtLink to="/" class="hover:underline">Accueil</NuxtLink></li>
         <li v-if="!user"><NuxtLink to="/booking" class="hover:underline">Réserver</NuxtLink></li>
+        <li><NuxtLink to="/requests" class="hover:underline">Demandes</NuxtLink></li>
 
         <!-- 🔹 Affichage du dashboard SEULEMENT si l'utilisateur est connecté -->
         <li v-if="user"><NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink></li>

@@ -61,32 +61,24 @@
   </template>
   
   <script setup>
-  import { ref } from "vue";
+  import { ref, onMounted } from "vue";
   import { usePlanning } from "~/composables/usePlanning";
   import { DateTime } from "luxon";
   import EventPopup from "~/components/EventPopup.vue";
+  import { useReservations } from '~/composables/useReservations';
+
+  const events = ref([])
+
+    onMounted(async () => {
+    events.value = await useReservations()
+    console.log("🔍 Données reçues dans PlanningTable.vue :", events.value);
+  })
   
   const { weekDays, changeWeek, resetToCurrentWeek } = usePlanning();
   const hours = ref(Array.from({ length: 13 }, (_, i) => i + 8));
 
-  const daysOff = ref(["samedi","dimanche"]); // Liste des jours non travaillés (format français)
-  const hoursOff = ref([12,13]); // Liste des heures de pause (ex: 12h-13h)
-
-  
-  // Événements bruts pour tester l'affichage
-  const events = ref([
-  {
-    title: "Mission Plombier",
-    start: "2025-03-07T08:00:00",
-    end: "2025-03-07T12:00:00",
-    color: "#1E40AF",
-    clientName: "Jean Dupont",
-    clientAddress: "12 Rue des Lilas, Paris",
-    contact: "06 12 34 56 78",
-    description: "Réparation d'une fuite sous l'évier de la cuisine."
-  }
-]);
-
+  const daysOff = ref([""]); // Liste des jours non travaillés (format français)
+  const hoursOff = ref([]); // Liste des heures de pause (ex: 12h-13h)
   
   // État pour gérer l'événement sélectionné
   const selectedEvent = ref(null);
@@ -99,7 +91,7 @@
     selectedEvent.value = null;
   };
   
-  // Récupérer les événements d'un jour spécifique
+
   const getEventsForDay = (day) => {
     return events.value.filter(event => {
       return DateTime.fromISO(event.start).hasSame(day, "day");
