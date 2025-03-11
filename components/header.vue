@@ -1,7 +1,20 @@
-<script setup lang="ts">
+<script setup>
 import { useAuthUser, signOut } from "@/composables/useAuth";
+import { useRoute, useRouter } from "vue-router";
+import { ref } from "vue";
 
-const user = useAuthUser(); // 🔹 Récupération de l'utilisateur connecté
+const user = useAuthUser();
+const route = useRoute();
+const router = useRouter();
+
+const toggleAside = () => {
+  if (route.path === "/planning") {
+    document.dispatchEvent(new Event("toggle-aside")); // 🔹 Déclenche l'ouverture de RequestAside
+  } else {
+    sessionStorage.setItem("openAsideOnLoad", "true");
+    router.push("/planning");
+  }
+};
 </script>
 
 <template>
@@ -10,12 +23,16 @@ const user = useAuthUser(); // 🔹 Récupération de l'utilisateur connecté
       <h1 class="text-2xl font-bold">QuickBook</h1>
 
       <ul class="flex space-x-4">
-        <!-- 🔹 Liens visibles pour tout le monde -->
         <li><NuxtLink to="/" class="hover:underline">Accueil</NuxtLink></li>
         <li v-if="!user"><NuxtLink to="/booking" class="hover:underline">Réserver</NuxtLink></li>
-        <li><NuxtLink to="/requests" class="hover:underline">Demandes</NuxtLink></li>
 
-        <!-- 🔹 Affichage du dashboard SEULEMENT si l'utilisateur est connecté -->
+        <!-- Bouton qui ouvre RequestAside -->
+        <li v-if="user">
+          <button @click="toggleAside" class="hover:underline bg-white text-blue-600 px-3 py-1 rounded">
+            📩 Voir demandes
+          </button>
+        </li>
+
         <li v-if="user"><NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink></li>
         <li v-if="user">
           <button @click="signOut" class="hover:underline">Déconnexion</button>
@@ -24,12 +41,3 @@ const user = useAuthUser(); // 🔹 Récupération de l'utilisateur connecté
     </nav>
   </header>
 </template>
-
-<style scoped>
-button {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-}
-</style>

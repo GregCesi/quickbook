@@ -1,14 +1,15 @@
 <template>
-    <div>
+  <div class="relative flex p-8">
+    <div class="w-full">
       <h2 class="text-xl font-bold mb-4 text-center">Planning de la semaine</h2>
-  
+
       <!-- Boutons de navigation -->
       <div class="flex justify-center gap-4 mb-4">
         <button @click="changeWeek(-1)" class="px-4 py-2 bg-gray-200 rounded">⬅️ Semaine précédente</button>
         <button @click="resetToCurrentWeek" class="px-4 py-2 bg-blue-500 text-white rounded">Aujourd'hui</button>
         <button @click="changeWeek(1)" class="px-4 py-2 bg-gray-200 rounded">Semaine suivante ➡️</button>
       </div>
-  
+
       <!-- Tableau du planning -->
       <div class="w-full overflow-x-auto">
         <div class="relative">
@@ -32,9 +33,9 @@
                     :key="day.toISODate()"
                     class="border border-gray-400 relative h-12 w-[12%]"
                     :class="getCellClass(day, hour)"
-                    @click="handleCellClick(day, hour)"
+                    @click="toggleAside"
                 >
-                    <template v-for="event in getEventsForDay(day)" :key="event.title">
+                    <template v-for="event in getEventsForDay(day)" :key="event.id">
                         <div
                         v-if="isEventStartInHour(event, hour)"
                         class="absolute mt-[2px] left-1 right-1 text-white p-1 rounded-md text-xs flex flex-col justify-start items-start cursor-pointer"
@@ -54,78 +55,102 @@
           </table>
         </div>
       </div>
-  
+
       <!-- Popup -->
       <EventPopup :event="selectedEvent" @close="closePopup" />
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from "vue";
-  import { usePlanning } from "~/composables/usePlanning";
-  import { DateTime } from "luxon";
-  import EventPopup from "~/components/EventPopup.vue";
-  import { useReservations } from '~/composables/useReservations';
+  </div>
+</template>
 
-  const events = ref([])
+<script setup>
+import { ref, defineProps, defineEmits, onMounted } from "vue";
+import { usePlanning } from "~/composables/usePlanning";
+import { DateTime } from "luxon";
+import EventPopup from "~/components/EventPopup.vue";
+import { useReservations } from '~/composables/useReservations';
 
-    onMounted(async () => {
-    events.value = await useReservations()
-    console.log("🔍 Données reçues dans PlanningTable.vue :", events.value);
-  })
-  
-  const { weekDays, changeWeek, resetToCurrentWeek } = usePlanning();
-  const hours = ref(Array.from({ length: 13 }, (_, i) => i + 8));
+const emit = defineEmits(["toggleAside"]); // ✅ Permet de notifier `planning.vue`
 
-  const daysOff = ref([""]); // Liste des jours non travaillés (format français)
-  const hoursOff = ref([]); // Liste des heures de pause (ex: 12h-13h)
-  
-  // État pour gérer l'événement sélectionné
-  const selectedEvent = ref(null);
-  
-  const openPopup = (event) => {
-    selectedEvent.value = event;
-  };
-  
-  const closePopup = () => {
-    selectedEvent.value = null;
-  };
-  
 
-  const getEventsForDay = (day) => {
-    return events.value.filter(event => {
-      return DateTime.fromISO(event.start).hasSame(day, "day");
-    });
-  };
-  
-  // Vérifier si un événement doit être affiché à CETTE heure précise
-  const isEventStartInHour = (event, hour) => {
-    const start = DateTime.fromISO(event.start);
-    return start.hour === hour;
-  };
-  
-  // Calcule le décalage vertical en %
-  const getEventOffset = (event) => {
-    const start = DateTime.fromISO(event.start);
-    return (start.minute / 60) * 100;
-  };
-  
-  // Calcule la hauteur en fonction de la durée en minutes
-  const getEventHeight = (event) => {
-    const start = DateTime.fromISO(event.start);
-    const end = DateTime.fromISO(event.end);
-    const totalMinutes = end.diff(start, "minutes").minutes;
-    return (totalMinutes / 60) * 100;
-  };
-  
-  // Formatage de l’heure d’un événement
-  const formatEventTime = (event) => {
-    const start = DateTime.fromISO(event.start).toFormat("HH:mm");
-    const end = DateTime.fromISO(event.end).toFormat("HH:mm");
-    return `${start} - ${end}`;
-  };
+defineProps({
+  isAsideOpen: Boolean // ✅ Permet de récupérer l’état de l’aside
+});
 
-  const handleCellClick = (day, hour) => {
+const eventsTest = ref([]);
+
+onMounted(async () => {
+  eventsTest.value = await useReservations();
+  console.log("🔍 Données reçues dans PlanningTable.vue :", eventsTest.value);
+});
+
+const events = ref([
+  {
+    id: 1,
+    title: "Réparation fuite évier",
+    start: "2025-03-10T09:00:00+00:00",
+    end: "2025-03-10T12:00:00+00:00",
+    status: "en cours",
+    description: "Réparation de fuite eau évier de la cuisine.",
+    color: "#1E40AF",
+    client: {
+      id: 1,
+      name: "Jean Dupont",
+      phone: "06 12 34 56 78",
+      address: "12 Rue des Lilas, Paris"
+    }
+  }
+]);
+
+const { weekDays, changeWeek, resetToCurrentWeek } = usePlanning();
+const hours = ref(Array.from({ length: 13 }, (_, i) => i + 8));
+
+const daysOff = ref([""]);
+const hoursOff = ref([]);
+
+const selectedEvent = ref(null);
+
+const openPopup = (event) => {
+  selectedEvent.value = event;
+};
+
+const closePopup = () => {
+  selectedEvent.value = null;
+};
+
+const toggleAside = () => {
+  emit("toggleAside"); // ✅ Envoie l’événement pour ouvrir/fermer `RequestAside.vue`
+};
+
+const getEventsForDay = (day) => {
+  return events.value.filter(event => {
+    return DateTime.fromISO(event.start).hasSame(day, "day");
+  });
+};
+
+const isEventStartInHour = (event, hour) => {
+  const start = DateTime.fromISO(event.start);
+  return start.hour === hour;
+};
+
+const getEventOffset = (event) => {
+  const start = DateTime.fromISO(event.start);
+  return (start.minute / 60) * 100;
+};
+
+const getEventHeight = (event) => {
+  const start = DateTime.fromISO(event.start);
+  const end = DateTime.fromISO(event.end);
+  const totalMinutes = end.diff(start, "minutes").minutes;
+  return (totalMinutes / 60) * 100;
+};
+
+const formatEventTime = (event) => {
+  const start = DateTime.fromISO(event.start).toFormat("HH:mm");
+  const end = DateTime.fromISO(event.end).toFormat("HH:mm");
+  return `${start} - ${end}`;
+};
+
+const handleCellClick = (day, hour) => {
   const event = events.value.find(event => {
     const start = DateTime.fromISO(event.start);
     const end = DateTime.fromISO(event.end);
@@ -145,22 +170,19 @@ const isEventInHour = (day, hour) => {
   });
 };
 
-// Vérifier si un jour est un jour off (colonne grisée)
 const isDayOff = (day) => {
   return daysOff.value.includes(day.setLocale('fr').toFormat('EEEE').toLowerCase());
 };
 
-// Vérifier si une heure est une heure off (ligne grisée)
 const isHourOff = (hour) => {
   return hoursOff.value.includes(hour);
 };
 
 const getCellClass = (day, hour) => {
   if (isDayOff(day) || isHourOff(hour)) {
-    return "bg-gray-300"; // Une seule classe pour la couleur
+    return "bg-gray-300";
   }
   return isEventInHour(day, hour) ? "cursor-pointer" : "";
 };
+</script>
 
-
-  </script>
